@@ -1,0 +1,9 @@
+function on_message(self, message_id, message, sender)
+	if message_id == hash("cover") then
+		go.set("#sprite", "tint.w", 0)
+		go.animate("#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_INOUTCUBIC, 1)
+	elseif message_id == hash("uncover") then
+		go.set("#sprite", "tint.w", 1)
+		go.animate("#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INOUTCUBIC, 1)
+	end
+end

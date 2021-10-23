@@ -1,0 +1,42 @@
+function init(self)
+	initialv4 = vmath.vector4(0.6,0.6,0.6,1)
+
+	scene_skycolor = vmath.vector4(1,1,1,1)
+	self.isAnimating = false
+	self.increment = 0.02
+	skycolorthreshold = 0
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	---pprint(scene_skycolor)
+	if self.isAnimating and scene_skycolor.x > skycolorthreshold then
+		print("isGoing")
+		sprite.set_constant("#sprite", "tint", scene_skycolor)
+		local v = scene_skycolor.x - (self.increment * dt)
+		scene_skycolor.x = v
+		scene_skycolor.y = v
+		scene_skycolor.z = v
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("start") then
+		self.isAnimating = true
+
+		scene_skycolor = initialv4
+	end
+end
+
+
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

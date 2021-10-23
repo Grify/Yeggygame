@@ -1,0 +1,71 @@
+function init(self)
+	--go.set(".", "position.x", mouseX)
+	--go.set(".", "position.y", mouseY)
+	pprint(go.get_position("."))
+	pprint("x "..mouseX.." y "..mouseY)
+	math.randomseed(os.clock()*100000000000) --wtf does this do
+	for i=1,3 do
+		math.random(10000, 65000)
+	end
+	self.tid = math.random(0,6)
+	sound.play("#sfx")
+	msg.post("#sprite", "play_animation", { id = hash("tfx"..self.tid)} )
+	go.animate("#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INOUTQUAD, 5)
+	go.set(".", "position.z", 0.6)
+	go.set(".", "scale.x", 0.6)
+	go.set(".", "scale.y", 0.6)
+	self.count = 0
+	self.enabled = true
+	
+end
+
+function final(self)
+
+	
+end
+
+function update(self, dt)
+	self.count = self.count + dt
+	if self.count > 0.6 then
+		
+		if self.enabled == false then
+			msg.post("#sprite", "enable")
+			self.count = 0
+			go.animate("#sprite", "tint.x", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_INOUTCIRC, 0.5)
+			
+		elseif self.enabled == true then
+			msg.post("#sprite", "disable")
+			self.count = 0.125
+		end
+	self.enabled = not self.enabled
+	end
+	--print(go.get("#sprite", "tint.w"))
+	--print(type(go.get(".", "position.y")))
+	if go.get(".", "position.y") < 800 and go.get("#sprite", "tint.w") > 0 then
+		go.set(".", "position.y", go.get(".", "position.y") + 1)
+		--go.set("#sprite", "tint.w", go.get("#sprite", "tint.w") - 0.01)
+	else
+		local function godel()
+			go.delete()
+		end
+		--go.get_t
+		go.animate("#sprite", "tint.x", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_INOUTCIRC, 0.5)
+		go.animate("#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INOUTCIRC, 0.5)
+		timer.delay(0.5, false, godel)
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	-- Add message-handling code here
+	-- Remove this function if not needed
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Remove this function if not needed
+end

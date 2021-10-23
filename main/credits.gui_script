@@ -1,0 +1,87 @@
+function init(self)
+	guiforslidein = {"box", "text", "box1", "box2", "box3", "box4", "box5", "box6", "text1", "text2", "box7", "text3"}
+	guiforslideout = {"text3", "box7", "text", "text1", "text2", "box4", "box5", "box6", "box1", "box2", "box3", "box"}
+	
+	displayoffset = 1280
+	--gui.animate(node, property, to, easing, duration)
+	msg.post(".", "acquire_input_focus")
+	
+	for index,node in ipairs(guiforslidein) do
+		gui.set_position(gui.get_node(node), vmath.vector3(gui.get_position(gui.get_node(node)).x-displayoffset, gui.get_position(gui.get_node(node)).y, gui.get_position(gui.get_node(node)).z))
+	end
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	-- Add update code here
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("rollcredits") or message_id == hash("docredits") then
+		local isMenu = false
+		if message.isMenu then --why is there two of them, these do exactly the same thing
+			
+			if message.isMenu == hash("true") then
+				isMenu = true
+			end
+		end
+
+		
+		--do the credit anims
+		--ok fine
+
+		--slidein anims
+		--gui.animate(node, property, to, easing, duration)
+		
+--[[		for index,node in ipairs(guiforslidein) do
+			gui.set_position(gui.get_node(node), vmath.vector3(gui.get_position(gui.get_node(node)).x-displayoffset, gui.get_position(gui.get_node(node)).y, gui.get_position(gui.get_node(node)).z))
+		end--]]--moved to init
+		for index,node in ipairs(guiforslidein) do
+			gui.animate(gui.get_node(node), "position.x", gui.get_position(gui.get_node(node)).x+displayoffset, gui.EASING_INOUTCUBIC, 1, index/4)--index is delay
+		end
+	elseif message_id == hash("closecredits") then
+		local function showmm()
+			msg.post("/mainmenu#script", "fadein")
+		end
+		for index,node in ipairs(guiforslideout) do
+			gui.animate(gui.get_node(node), "position.x", gui.get_position(gui.get_node(node)).x-displayoffset, gui.EASING_INOUTCUBIC, 1, index/4)--index is delay
+		end
+		timer.delay(3, false, showmm)
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and gui.pick_node(gui.get_node("box2"), action.x, action.y) then
+		local success = sys.open_url("https://twitter.com/GrifyDev", {target = "_blank"})
+		if not success then
+			print("error")
+		end
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box3"), action.x, action.y) then
+		local success = sys.open_url("https://discord.grify.dev", {target = "_blank"})
+		if not success then
+			print("error")
+		end
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box5"), action.x, action.y) then--twiter
+		local success = sys.open_url("https://twitter.com/realikomusic", {target = "_blank"})
+		if not success then
+			print("error")
+		end
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box6"), action.x, action.y) then--yt
+		local success = sys.open_url("https://www.youtube.com/channel/UCOWIHWVKGWOXdq6qZHDYA-Q", {target = "_blank"})
+		if not success then
+			print("error")
+		end
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box7"), action.x, action.y) then
+		msg.post("/credits#script", "closecredits")
+	end
+end
+
+function on_reload(self)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end

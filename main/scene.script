@@ -1,0 +1,46 @@
+function init(self)
+	self.initialv4 = vmath.vector4(0.8,0.8,0.8,1)
+	sprite.set_constant("#sprite", "tint", self.initialv4)
+	
+	self.scene_color = vmath.vector4(1,1,1,1)
+	self.isAnimating = false
+	self.increment = 0.005
+	colorthreshold = 0
+	self.scene_color = initialv4
+	
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Learn more: https://defold.com/manuals/script/
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	if self.scene_color then
+		--print(self.scene_color.x)
+	end
+	--pprint(" dt "..dt.." type "..type(dt).." increment "..self.increment.." "..type(self.increment))
+	if self.isAnimating and self.scene_color.x > colorthreshold then
+		sprite.set_constant("#sprite", "tint", self.scene_color)
+		self.scene_color.x = self.scene_color.x - self.increment*dt
+		self.scene_color.y = self.scene_color.y - self.increment*dt
+		self.scene_color.z = self.scene_color.z - self.increment*dt
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("start") then
+		self.isAnimating = true
+		self.scene_color = vmath.vector4(1,1,1,1)
+		
+	end
+end
+
+
+
+function on_reload(self)
+	-- Add reload-handling code here
+	-- Learn more: https://defold.com/manuals/hot-reload/
+	-- Remove this function if not needed
+end

@@ -1,0 +1,63 @@
+textvalue = ""
+function init(self)
+	textnode = gui.get_node("text")
+	
+end
+
+function final(self)
+	-- Add finalization code here
+	-- Remove this function if not needed
+end
+
+function update(self, dt)
+	-- Add update code here
+	-- Remove this function if not needed
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("set") then
+		print(message.value)
+		pprint(message.value)
+		print(type(message.value))
+		textvalue = message.value
+		if textvalue == nil then
+			textvalue = ""
+		end
+		gui.set_text(textnode, textvalue)
+	elseif message_id == hash("invis") then
+		local nodecolor = gui.get_color(textnode)
+		nodecolor.w = 0
+		gui.set_color(textnode, nodecolor)
+	elseif message_id == hash("vis") then
+		local nodecolor = gui.get_color(textnode)
+		nodecolor.w = 1
+		gui.set_color(textnode, nodecolor)
+	elseif message_id == hash("fadein") then
+		local nodecolor = gui.get_color(textnode)
+		nodecolor.w = 0
+		gui.set_color(textnode, nodecolor)
+		gui.animate(textnode, "color.w", 1, gui.EASING_INEXPO, 1)
+	elseif message_id == hash("fadeout") then
+		local nodecolor = gui.get_color(textnode)
+		nodecolor.w = 1
+		gui.set_color(textnode, nodecolor)
+		gui.animate(textnode, "color.w", 0, gui.EASING_INEXPO, 1)
+		if message.clearAtEnd then
+			local function clearTextnode()
+				msg.post("/yeggyname#script", "set", { value = "" })
+			end
+			timer.delay(1, false, clearTextnode)
+		end
+	end
+		
+end
+
+function on_input(self, action_id, action)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end
+
+function on_reload(self)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end

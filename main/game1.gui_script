@@ -1,0 +1,334 @@
+function init(self)
+	math.randomseed(os.clock()*100000000000) --wtf does this do
+	for i=1,3 do
+		math.random(10000, 65000)
+	end
+	msg.post(".", "acquire_input_focus")
+	self.gameactive = false
+	self.active = true
+	self.gamecontainervisible = false
+	self.screencovervisible = false
+	self.gamestartactive = false
+	self.visible = false
+	self.enabled = false
+	self.canMove = false
+	self.winCheckDone = true
+	self.mutecontainer = gui.get_node("mutecontainer")
+	self.mutetext = gui.get_node("mutetext")
+	self.gamecontainer = gui.get_node("gamecontainer")
+	self.screencover = gui.get_node("screencover")
+	self.playernode = gui.get_node("player")
+	self.goalnode = gui.get_node("goal")
+	self.nodes = {mutecontainer, mutetext, gamecontainer, screencover}
+	self.hasEndedGame = false
+	--self.defaultPlayerPos = gui.get_position(self.playernode)
+	local screencovercolor = gui.get_color(self.screencover)
+	screencovercolor.w = 1
+	gui.set_color(self.screencover, screencovercolor)
+	gui.set_text(self.mutetext, "MUTE")
+
+	self.input = vmath.vector3()
+	self.speed = vmath.vector3()
+	self.momentum = vmath.vector3()
+	self.playerpos = vmath.vector3(640, 22.5, 0)
+	nottest = true
+	self.obstaclesInUse = 0 --10 total
+	self.obstacle = {gui.get_node("obstacle0"),gui.get_node("obstacle1")}
+	sound.play("/song#sound")
+	function tfx(pos)
+		if type(pos) then--validation
+			print(type(pos))
+			sound.play("/sfx#sound")
+		end
+	end
+	function checkWinstate()
+		
+		if self.playerpos.y > 670 or devmodescene > 5 then
+			print("won")
+			local function winstateAnimStage2()
+				gui.animate(self.gamecontainer, "color.w", 0, gui.EASING_INOUTCUBIC, 2)
+			end
+			local function winstateAnimStage3()
+				gui.animate(self.screencover, "color.w", 1, gui.EASING_INOUTCUBIC, 1.5)
+			end
+			local function winstateAnimStage4()
+				gui.animate(self.playernode, "position.x", 625, gui.EASING_INOUTSINE, 1)
+			end
+			local function winstateAnimStage5()
+				gui.animate(self.playernode, "position.y", 345, gui.EASING_INOUTSINE, 1)
+			end
+			local function winstateAnimStage6()
+				gui.animate(self.playernode, "scale.x", 1280, gui.EASING_INOUTCUBIC, 2)
+			end
+			local function winstateAnimStage7()
+				gui.animate(self.playernode, "scale.y", 720, gui.EASING_INOUTCUBIC, 2)
+			end
+			local function winstateAnimStage8()
+				gui.animate(self.playernode, "color.w", 0, gui.EASING_INOUTCUBIC, 1)
+				msg.post("/cover#script", "cover")
+			end
+			local function closeGame()
+				
+				
+				msg.post("/main#script", "game1done")
+				msg.post("/game1#script", "disable")
+			end
+			self.canMove = false
+			self.active = false
+			gui.animate(self.goalnode, "color.w", 4, gui.EASING_INOUTCUBIC, 4)
+			gui.animate(self.playernode, "color.z", 4, gui.EASING_INOUTCUBIC, 2)
+			gui.animate(self.playernode, "color.z", 4, gui.EASING_INOUTCUBIC, 2)
+			
+			for i = 0,9 do
+				gui.animate(gui.get_node("obstacle"..i), "color.w", 0, gui.EASING_INOUTCUBIC, 2)
+			end
+			if devmodescene > 6 and devmode then
+				winstateAnimStage2()
+				winstateAnimStage3()
+				winstateAnimStage4()
+				winstateAnimStage5()
+				winstateAnimStage6()
+				winstateAnimStage7()
+				winstateAnimStage8()
+				closeGame()
+			else
+				timer.delay(2, false, winstateAnimStage2)
+				timer.delay(5, false, winstateAnimStage3)
+				timer.delay(6.5, false, winstateAnimStage4)
+				timer.delay(7, false, winstateAnimStage5)
+				timer.delay(8, false, winstateAnimStage6)
+				timer.delay(9, false, winstateAnimStage7)
+				timer.delay(10, false, winstateAnimStage8)
+				timer.delay(11, false, closeGame)
+			end
+		else
+			self.winCheckDone = true
+		end
+	end
+	function gameOver()
+		if self.hasEndedGame == false then
+			self.hasEndedGame = true--stops doublecalls
+			print("oof")
+			msg.post(".", "reset")
+		end
+	end
+	function checkCollision()
+		local isCollide = false
+		local down = self.playerpos.y-12.5
+		local top = self.playerpos.y+12.5
+		local left = self.playerpos.x-12.5
+		local right = self.playerpos.x+12.5
+		local function collisionCheck(i)
+			if gui.pick_node(gui.get_node("obstacle"..i), left, top) then
+				return true
+			elseif gui.pick_node(gui.get_node("obstacle"..i), right, top) then
+				return true
+			elseif gui.pick_node(gui.get_node("obstacle"..i), left, down) then
+				return true
+			elseif gui.pick_node(gui.get_node("obstacle"..i), right, down) then
+				return true
+			else
+				return false
+			end
+		end
+		for i = 1,self.obstaclesInUse do
+			if (collisionCheck(i)) and self.active then
+				sound.play("/sfx#sound")
+				
+				self.canMove = false
+				gui.animate(gui.get_node("obstacle"..i), "color.w", 4, gui.EASING_INOUTCUBIC, 1)
+				gui.animate(self.playernode, "color.w", 0, gui.EASING_INOUTCUBIC, 2)
+				if not devmode or devmodescene > 6 then
+					timer.delay(2, false, gameOver)
+				else
+					gameOver()
+				end
+			end
+		end
+	end
+	function moved()
+		if self.active then
+			for i = 1,math.random(1,10) do
+				msg.post(".", "obstruct")
+			end
+			timer.delay(1.1, false, checkCollision)
+			if self.active and self.winCheckDone then
+				--print("checking winstate")
+				self.winCheckDone = false
+				timer.delay(1.1, false, checkWinstate)
+			else
+				--print("cannot check winstate")
+			end
+		end
+	end
+end
+
+function final(self)
+
+end
+
+function update(self, dt)
+	if devmodescene > 7 and self.winCheckDone then
+		self.winCheckDone = false
+		checkWinstate()
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("enable") then
+		print("game1 initialized")
+		--reset colors and vars from init
+		local screencovercolor = gui.get_color(self.screencover)
+		screencovercolor.w = 1
+		gui.set_color(self.screencover, screencovercolor)
+		gui.set_text(self.mutetext, "MUTE")
+		self.gameactive = false
+		self.gamecontainervisible = false
+		self.screencovervisible = false
+		self.gamestartactive = false
+		self.visible = false
+		self.enabled = false
+		local function fadeoutscreencover()
+			self.enabled = true
+			local screencovercolor = gui.get_color(self.screencover)
+			screencovercolor.w = 0.2
+			gui.animate(self.screencover, "color", screencovercolor, go.EASING_INOUTCUBIC, 2)
+			self.visible = true
+			self.canMove = true
+		end
+		local function fadeingamecontainer()
+			local gamecontainercolor = gui.get_color(self.gamecontainer)
+			gamecontainercolor.w = 0.53
+			gui.animate(self.gamecontainer, "color", gamecontainercolor, go.EASING_INOUTCUBIC, 2)
+		end
+		fadeoutscreencover()
+		timer.delay(1, false, fadeingamecontainer)
+	elseif message_id == hash("disable") then
+		self.enabled = false
+	elseif message_id == hash("obstruct") then --and message.y and message.z and message.width and message.height
+		if self.obstaclesInUse < 10 then
+			--print("indexing obstacle "..self.obstaclesInUse.."")
+			local nodeInstance = gui.get_node("obstacle"..self.obstaclesInUse)
+			--pprint(self.obstacle[self.obstaclesInUse].." is not "..self.obstacle[1])
+			local tox = gui.get_position(gui.get_node("obstacle"..self.obstaclesInUse)).x + (math.random(-4, 4)*25) --validation
+			while tox > 200 or tox < -200 do
+				tox = gui.get_position(nodeInstance).x + (math.random(-4, 4)*25) --validation
+				local r = math.random(1,5)
+				if r == 1 or r == 3 then
+					--print("sideleft")
+					tox = 200
+				elseif r == 2 or r == 4 then
+					--print("sideright")
+					tox = -200
+				else
+					--print("r"..r)
+				end
+			end
+			gui.animate(nodeInstance, "position.x", tox, go.EASING_INOUTCUBIC, 1)
+			
+			local toy = gui.get_position(gui.get_node("obstacle"..self.obstaclesInUse)).y + (math.random(-4, 4)*25) --validation
+			while toy > 249 or toy < -300 do
+				toy = gui.get_position(nodeInstance).y + (math.random(-4, 4)*25) --validation
+				if math.random(1,6) == 6 then
+					toy = 249
+				end
+			end
+			gui.animate(nodeInstance, "position.y", toy, go.EASING_INOUTCUBIC, 1)
+		else
+			--print("no available obstacles, resetting")
+			self.obstaclesInUse = 0
+			local nodeInstance = obstacle[obstaclesInUse]
+			
+			--local nodeInstance = gui.new_box_node(vmath.vector3(message.x,message.y,message.z), vmath.vector3(message.width, message.height, 1))
+			return "no available obstacles"
+			
+		end
+		
+		--pprint(nodeInstance)
+		self.obstaclesInUse = self.obstaclesInUse + 1
+		if self.obstaclesInUse > 9 then
+			self.obstaclesInUse = 0
+		end
+	elseif message_id == hash("reset") then
+		local function animaway()
+			for i = 0,9 do
+				gui.animate(gui.get_node("obstacle"..i), "position", vmath.vector3(0,0,1), gui.EASING_INOUTCUBIC, 1)
+				gui.animate(gui.get_node("obstacle"..i), "color.w", 1, gui.EASING_INOUTCUBIC, 1)
+				gui.animate(self.playernode, "color.w", 1, gui.EASING_INOUTCUBIC, 1)
+				
+			end
+		end
+		timer.delay(0.5, false, animaway)
+		gui.animate(self.playernode, "color.w", 1, gui.EASING_INOUTCUBIC, 1)
+		
+		gui.animate(self.playernode, "position", vmath.vector3(640,22.5,0), gui.EASING_INOUTCUBIC, 1)
+		self.playerpos = vmath.vector3(640, 22.5, 0)
+		
+		local function allowEndedGameAgain()
+			self.canMove = true
+			self.hasEndedGame = false
+		end
+		timer.delay(1.2, false, allowEndedGameAgain)
+	end
+end
+
+function on_input(self, action_id, action)
+	if action_id == hash("touch") and action.pressed then
+		--msg.post(".", "obstruct")
+	elseif action_id == hash("touch") and action.pressed and gui.pick_node(self.mutecontainer, action.x, action.y) then
+		if gui.get_text(self.mutetext) == "MUTE" then
+			sound.stop("/song#sound")
+			
+			muted = true
+			gui.set_text(self.mutetext, "UNMUTE")
+		elseif gui.get_text(self.mutetext) == "UNMUTE" then
+			sound.play("/song#sound")
+			
+			muted = false
+			gui.set_text(self.mutetext, "MUTE")
+		else
+			print("muted "..gui.get_text(self.mutetext))
+		end
+	elseif action_id == hash("w") and nottest and self.canMove and self.playerpos.y < 672.5 then
+		local function canMoveAgain()
+			nottest = true
+		end
+		nottest = false
+		gui.animate(self.playernode, "position.y", self.playerpos.y + 25, gui.EASING_INOUTQUART, 0.35)
+		self.playerpos.y = self.playerpos.y + 25
+		timer.delay(0.3, false, canMoveAgain)
+		moved()
+	elseif action_id == hash("a") and nottest and self.playerpos.x > 415 and self.canMove then
+		local function canMoveAgain()
+			nottest = true
+		end
+		nottest = false
+		gui.animate(self.playernode, "position.x", self.playerpos.x - 25, gui.EASING_INOUTQUART, 0.35)
+		self.playerpos.x = self.playerpos.x - 25
+		timer.delay(0.3, false, canMoveAgain)
+		moved()
+	elseif action_id == hash("s") and nottest and self.canMove and self.playerpos.y > 22.5 then
+		local function canMoveAgain()
+			nottest = true
+		end
+		nottest = false
+		gui.animate(self.playernode, "position.y", self.playerpos.y - 25, gui.EASING_INOUTQUART, 0.35)
+		self.playerpos.y = self.playerpos.y - 25
+		timer.delay(0.3, false, canMoveAgain)
+		moved()
+	elseif action_id == hash("d") and nottest and self.canMove then
+		local function canMoveAgain()
+			nottest = true
+		end
+		nottest = false
+		gui.animate(self.playernode, "position.x", self.playerpos.x + 25, gui.EASING_INOUTQUART, 0.35)
+		self.playerpos.x = self.playerpos.x + 25
+		timer.delay(0.3, false, canMoveAgain)
+		moved()
+	end
+end
+
+function on_reload(self)
+	-- Add input-handling code here
+	-- Remove this function if not needed
+end

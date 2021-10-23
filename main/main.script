@@ -1,0 +1,266 @@
+function init(self)
+	devmode = false --bypass waiting and skip to a scene
+	devmodescene = 0 --8
+	muted = false
+	mac = false
+	hasFeatured = false
+	featureCount = 0
+	msg.post(".", "acquire_input_focus")
+	msg.post("@render:", "use_fixed_fit_projection", { near = -1, far = 1 })
+	msg.post("/mainmenu#script", "disable")
+	msg.post("/scene", "disable")
+	msg.post("/yeggyname#script", "invis")
+	msg.post("/cover#sprite", "disable")
+	msg.post("/game1#script", "disable")
+	msg.post("/scene-foreground", "disable")
+	msg.post("/scene-sky", "disable")
+	
+	go.set("/cover#sprite", "tint.w", 0)
+	
+	go.set("/letterE#sprite", "tint.w", 0)
+	msg.post("/logo#script", "setzero")
+	generateTFX = false
+	--sound.play("/background#song")
+	if not devmode then --init scripts if player not dev
+		msg.post("/logo#script", "fadein")
+	end
+	epressed = false
+	epressable = false
+	--defining events to be timed
+	function logoscriptfadeout()
+		local function logoscriptfadeoutsetzero()
+			mac = true
+			msg.post("/logo#script", "setzero")
+			
+			if not devmode then
+				msg.post("/mainmenu#script", "setzero")
+				msg.post("/mainmenu#script", "fadein")
+			end
+			msg.post("/mainmenu#script", "enable")
+			if devmode and devmodescene > 1 then
+				msg.post("/mainmenu#script", "pressedplay")
+			end
+		end
+		
+		msg.post("/logo#script", "fadeout")
+		if not devmode then
+			timer.delay(2.5, false, logoscriptfadeoutsetzero)
+		else
+			logoscriptfadeoutsetzero()
+		end
+	end
+	function docredits()
+		local function creditsslide()
+
+			msg.post("/credits#script", "docredits", { isMenu = hash("true") })
+		end
+		msg.post("/mainmenu#script", "fadeout")
+		timer.delay(2, false, creditsslide)
+	end
+	--timed events from launch
+	if not devmode then
+		timer.delay(4.5, false, logoscriptfadeout)
+	else
+		logoscriptfadeout()
+	end
+	--timer.delay(5, false, docredits)
+
+
+
+end
+--function update(self, dt) --don't need this anymore --no wait you actually do need this --no i don't
+--end
+function on_input(self, action_id, action)
+	--print("main.script")
+	
+	if action_id == hash("touch") and action.pressed then
+		--msg.post("/mainmenu#script", "fadeout")
+		--msg.post(".", "stopit")
+		--factory.create("/tidfactory#tidfactory")
+		if generateTFX then
+			msg.post("/main", "pow", { x = action.x, y = action.y } )
+			if the_feature_enabled and hasFeatured == false then
+				if featureCount > 17 then
+					hasFeatured = true
+					local success = sys.open_url("https://discord.gg/GgKrCTE", {target = "_blank"})
+				else
+					featureCount = featureCount + 1
+				end
+			end
+		end
+	elseif action_id == hash("e") and epressable and not epressed then
+		go.set("/letterE#sprite", "tint.w", 1)
+		
+		print("e has been pressed")
+		epressed = true
+	elseif action_id == hash("e") then
+		print("you're fucked")
+		
+	end
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("fadeoutbg") then
+		go.animate("/background#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INOUTEXPO, 3)
+	elseif message_id == hash("pow") then
+		if message.x and message.y then
+			print("msg "..message.x..", "..message.y)
+			mouseX = message.x
+			mouseY = message.y
+			factory.create("/tidfactory#tidfactory", vmath.vector3(message.x, message.y, 0.6))
+		end
+		
+	elseif message_id == hash("game1done") then
+		go.set("/scene#sprite", "tint.w", 0)
+		go.set("/scene-foreground#sprite", "tint.w", 0)
+		go.set("/scene-sky#sprite", "tint.w", 0)
+		
+		print("good job")
+		msg.post("/scene-foreground", "enable")
+		local function startfgandskydarken()
+			msg.post("/scene-foreground#script", "start")
+		end
+		local function doSky()
+			msg.post("/scene-sky", "enable")
+			go.set("/scene-sky#sprite", "tint.w", 0)
+			msg.post("/scene-sky#script", "start")
+		end
+		local function startSceneDarken()
+			msg.post("/scene#script", "start")
+		end
+		startSceneDarken()
+		
+		timer.delay(0.5, false, startfgandskydarken)
+		timer.delay(1, false, doSky)
+		
+		--sprite.set_constant("/scene-foreground", "tint", vmath.vector4(1, 0, 0, 1))
+		--go.animate("/scene-foreground#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 0.05, go.EASING_INOUTCUBIC, 6)
+		local function changeSceneSpriteAnimation()
+			--go.set("/scene#sprite", "tint.w", 0)
+			msg.post("/scene#sprite", "play_animation", { id = hash("themarket") } )
+			msg.post("/cover#script", "uncover")
+			local function genTTrue()
+				generateTFX = true
+			end
+			timer.delay(0.5, false, genTTrue)
+		end
+		go.animate("/scene#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_INOUTCUBIC, 2)
+		--go.animate("/scene-sky#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_INOUTCUBIC, 2)
+		go.set("/scene-sky#sprite", "tint.w", 1)
+		go.animate("/scene-foreground#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, 1, go.EASING_INOUTCUBIC, 2)
+		timer.delay(1, false, changeSceneSpriteAnimation)
+		msg.post("/scene", "enable")
+		
+	elseif message_id == hash("pressedplay") then
+		sound.stop("/background#song")
+		sound.stop("/song#sound")
+				local function swapbgforfirstscene()
+			go.set("/letterE#sprite", "tint.w", 0)
+			msg.post("/letterE", "disable")
+			local function fadenewbgin()
+				local function completelyUnnecessaryNestedFunction()
+					msg.post("/cover#sprite", "enable")
+					if not devmode then
+						go.animate("/cover#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, .4, go.EASING_INOUTCUBIC, 2)
+					else
+						go.animate("/cover#sprite", "tint.w", go.PLAYBACK_ONCE_FORWARD, .4, go.EASING_INOUTCUBIC, 0)
+					end
+					msg.post("/game1#script", "enable")
+					msg.post("/scene", "enable")
+					
+				end
+				timer.delay(0, false, completelyUnnecessaryNestedFunction)
+			end
+			--msg.post("/background#sprite", "play_animation", { id = hash("scene1") })
+			if not devmode or devmodescene < 4 then
+				timer.delay(3, false, fadenewbgin)
+			else
+				fadenewbgin()
+			end
+		end
+		local function pressedE()
+			function ymsg(action, x)
+				if x == "" or x == nil then 
+					msg.post("/yeggyname#script", action)
+				elseif action == "set" then
+					msg.post("/yeggyname#script", "set", { value = x })
+				else
+					if x ~= nil then
+						--print("errored value x "..x.." of type "..type(x))
+					end
+				end
+			end
+			local function showYeggy()
+				--print("yeggy")
+				ymsg("set", "yeggy")
+				ymsg("fadein")
+				--msg.post("/yeggyname#script", "set", { value = "yeggy" })
+				--msg.post("/yeggyname#script", "fadein")
+			end
+			local function fadeOutYeggy()
+				--print("fadeoutyeggy")
+				ymsg("fadeout")
+				ymsg("set", "")
+				ymsg("fadein")
+				--msg.post("/yeggyname#script", "fadeout", { value = true })
+				--msg.post("/yeggyname#script", "set", { value = "" })
+			end
+			local function addE()
+				msg.post("/yeggyname#script", "set", { value = "e" })
+			end
+			local function addFirstG()
+				msg.post("/yeggyname#script", "set", { value = "eg" })
+			end
+			local function addSecondG()
+				msg.post("/yeggyname#script", "set", { value = "egg" })
+			end
+			local function addYs()
+				msg.post("/yeggyname#script", "set", { value = "yeggy" })
+			end
+			local function clearBord()
+				ymsg("fadeout")
+			end
+			local function printHere()
+				--print("here")
+			end
+			sound.stop("/voiceover#sound1")
+			sound.play("/voiceover#sound3")
+
+			timer.delay(6, false, showYeggy)
+			timer.delay(10, false, fadeOutYeggy)
+			timer.delay(10.3, false, addE)
+			timer.delay(10.7, false, addFirstG)
+			timer.delay(11.1, false, addSecondG)
+			timer.delay(13.5, false, addYs)
+			timer.delay(18, false, clearBord)
+			timer.delay(19, false, swapbgforfirstscene)
+		end
+		local function pressE()
+			if not epressed then
+				epressable = true
+				sound.play("/voiceover#sound1")
+				timer.delay(4, false, pressE)
+			else
+				sound.play("/voiceover#sound2")
+				go.set("/letterE#sprite", "tint.w", 1)
+				go.animate("/letterE#sprite", "scale.x", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INEXPO, 2)
+				go.animate("/letterE#sprite", "scale.y", go.PLAYBACK_ONCE_FORWARD, 0, go.EASING_INEXPO, 2)
+				
+				epressable = false
+				timer.delay(0.5, false, pressedE)
+			end
+		end
+		msg.post(".", "fadeoutbg")
+		if not devmode then
+			pressE()
+		else
+			--print(devmodescene > 2)
+			if devmodescene < 3 then
+				pressedE()
+			else
+				swapbgforfirstscene()
+			end
+			--timer.delay(0.5, false, playsound)
+		end
+	end
+end

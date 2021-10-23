@@ -1,0 +1,161 @@
+local defsave = require("defsave.defsave")
+defsave.appname = "yeggy"
+the_feature_enabled = false
+playpressable = false
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	defsave.load("the_feature")
+	if defsave.get("the_feature", "enabled") and defsave.get("the_feature", "enabled") ~= nil and defsave.get("the_feature", "enabled") ~= "" and defsave.get("the_feature", "enabled") == "true" then
+		--print("has valid value")
+		the_feature_enabled = defsave.get("the_feature", "enabled")
+		
+		if the_feature_enabled then
+			the_feature_enabled = true
+			gui.set_text(gui.get_node("the_feature_gui"), "the_feature is enabled")
+		else
+			the_feature_enabled = false
+		end
+		--print(the_feature_enabled)
+		--print(type(the_feature_enabled))
+	else
+		--print("empty, reverting")
+		defsave.set("the_feature", "enabled", "false")
+		
+	end
+	defsave.save("the_feature")
+
+
+	nodes = {"box", "box1", "box2", "text", "text1", "credits", "box3", "the_feature_gui"}
+end
+
+function final(self)
+	defsave.save_all(true)
+end
+
+function update(self, dt)
+
+end
+
+function on_message(self, message_id, message, sender)
+	--print("msg "..message_id)
+	if message_id == hash("fadeout") then
+		playpressable = false
+		
+		for index,node in ipairs(nodes) do
+			gui.animate(gui.get_node(node), "color.w", 0, gui.EASING_INOUTQUAD, 3, 0.0)
+		end
+		
+	elseif message_id == hash("enable") then
+		playpressable = true
+		
+		for index,node in ipairs(nodes) do
+			gui.set_enabled(gui.get_node(node), true)
+		end
+		
+		
+	elseif message_id == hash("disable") then
+		playpressable = false
+		
+		for index,node in ipairs(nodes) do
+			gui.set_enabled(gui.get_node(node), false)
+		end
+		
+	elseif message_id == hash("pressedplay") then
+		local function fadeboxout()
+			if not devmode then
+				gui.animate(gui.get_node("box"), "position.x", -350, gui.EASING_INOUTQUAD, 3)
+				gui.animate(gui.get_node("text"), "position.x", -350, gui.EASING_INOUTQUAD, 3)
+			else
+				gui.animate(gui.get_node("box"), "position.x", -350, gui.EASING_INOUTQUAD, 0)
+				gui.animate(gui.get_node("text"), "position.x", -350, gui.EASING_INOUTQUAD, 0)
+			end
+		end
+		local function fadebox1out()
+			if not devmode then
+				gui.animate(gui.get_node("box1"), "position.x", -1000, gui.EASING_INOUTQUAD, 3)
+				gui.animate(gui.get_node("text1"), "position.x", -1000, gui.EASING_INOUTQUAD, 3)
+			else
+				gui.animate(gui.get_node("box1"), "position.x", -1000, gui.EASING_INOUTQUAD, 0)
+				gui.animate(gui.get_node("text1"), "position.x", -1000, gui.EASING_INOUTQUAD, 0)
+			end
+		end
+		local function fadebg()
+			msg.post("/main#script", "pressedplay")
+		end
+		if not devmode then
+			for index,node in ipairs(nodes) do
+				if node == "box" then
+					gui.animate(gui.get_node("box"), "color.w", 2, gui.EASING_INOUTQUAD, 3)
+					timer.delay(3.5, false, fadeboxout)
+					--timer.delay(3, false, fadebox1out)
+					timer.delay(4, false, fadebg)
+				else
+					gui.animate(gui.get_node(node), "color.w", 0, gui.EASING_INOUTQUAD, 3)
+				end
+			end
+		else
+			for index,node in ipairs(nodes) do
+				if node == "box" then
+					gui.animate(gui.get_node("box"), "color.w", 2, gui.EASING_INOUTQUAD, 0)
+					timer.delay(0, false, fadeboxout)
+					--timer.delay(3, false, fadebox1out)
+					timer.delay(0, false, fadebg)
+				else
+					gui.animate(gui.get_node(node), "color.w", 0, gui.EASING_INOUTQUAD, 0)
+				end
+			end
+		end
+	elseif message_id == hash("fadein") then
+		playpressable = true
+		
+		print("fadein")
+		for index,node in ipairs(nodes) do
+			local nodeinstance = gui.get_node(node)
+			local nodecolor = gui.get_color(nodeinstance)
+			nodecolor.w = 0
+			gui.set_color(nodeinstance, nodecolor)
+		end
+		for index,node in ipairs(nodes) do
+			gui.animate(gui.get_node(node), "color.w", 1, gui.EASING_INOUTQUAD, 3)
+		end
+	end
+end
+
+function on_input(self, action_id, action)
+
+	if action_id == hash("type") then
+		if username and string.len(username) < 16 then
+			username = username .. action.text
+			gui.set_text(gui.get_node("username"), username)
+		end
+	elseif action_id == hash("backspace") and action.repeated then
+		local l = string.len(username)
+		username = string.sub(username, 0, l-1) -- <5>
+		gui.set_text(gui.get_node("username"), username) -- <6>
+	elseif action_id == hash("enter") then
+		editable = false
+		saveUsername(username)
+		gui.set_color(gui.get_node("box3"), vmath.vector4(1, 1, 1, 0))
+		gui.animate(gui.get_node("box"), "color.w", 0, gui.EASING_LINEAR, 1)
+		gui.animate(gui.get_node("box3"), "color.w", 0, gui.EASING_LINEAR, 5)
+		gui.animate(gui.get_node("enter"), "color.w", 0, gui.EASING_LINEAR, 3)
+		gui.animate(gui.get_node("box2"), "color.w", 0, gui.EASING_LINEAR, 4)
+		gui.animate(gui.get_node("username"), "color.w", 0, gui.EASING_LINEAR, 5)
+		timer.delay(5, false, youHaveTheBridge)
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box1"), action.x, action.y) and action.pressed and mac then
+		mac = false
+		msg.post("@system:", "exit", {code = 0}) --exit game
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box"), action.x, action.y) and action.pressed and mac then
+		mac = false
+		print("there")
+		msg.post(".", "pressedplay")
+	elseif action_id == hash("touch") and gui.pick_node(gui.get_node("box3"), action.x, action.y) and mac then
+		
+		local function creditsslide()
+
+			msg.post("/credits#script", "docredits", { isMenu = hash("true") })
+		end
+		msg.post("/mainmenu#script", "fadeout")
+		timer.delay(2, false, creditsslide)
+	end
+end
